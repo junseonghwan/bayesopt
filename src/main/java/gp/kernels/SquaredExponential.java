@@ -6,7 +6,7 @@ public class SquaredExponential implements Kernel
 {
 
 	@Override
-  public double value(double[] x, double y) {
+  public double value(double[] x, double [] y) {
 	  return 0;
   }
 

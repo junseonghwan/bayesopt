@@ -5,7 +5,7 @@ import org.ejml.simple.SimpleMatrix;
 public class Matern implements Kernel {
 
 	@Override
-	public double value(double[] x, double y) {
+	public double value(double[] x, double [] y) {
 		// TODO Auto-generated method stub
 		return 0;
 	}
