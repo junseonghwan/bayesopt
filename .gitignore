@@ -1,0 +1,10 @@
+.settings
+.gradle
+.classpath
+.project
+bin
+build
+.RData
+.Rhistory
+results/latest
+results
