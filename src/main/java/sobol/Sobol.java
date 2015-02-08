@@ -42,8 +42,8 @@ public class Sobol
 		xxMat = xxMat.transpose();
 		zzMat = zzMat.transpose();
 
-		double [] fxx = func.eval(xxMat);
-		double [] fzz = func.eval(zzMat);
+		double [] fxx = func.value(xxMat);
+		double [] fzz = func.value(zzMat);
 
 		double mu_hat = 0;
 		double cross_moment = 0;
@@ -86,8 +86,8 @@ public class Sobol
 		xxMat = xxMat.transpose();
 		zzMat = zzMat.transpose();
 
-		double[] fxx = func.eval(xxMat);
-		double[] fzz = func.eval(zzMat);
+		double[] fxx = func.value(xxMat);
+		double[] fzz = func.value(zzMat);
 		
 		double usobol = 0;
 		for( int i = 0; i < n; i++ )

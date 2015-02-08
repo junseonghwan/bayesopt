@@ -13,7 +13,7 @@ public class SobolIndices
 {
 	@Test
 	public void test() {
-		Random random = new Random(23);
+		Random random = new Random(232);
 		Function branin = new Branin();
 		int n = 100000;
 		int d = branin.getDim();

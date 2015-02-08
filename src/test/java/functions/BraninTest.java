@@ -36,7 +36,7 @@ public class BraninTest
 		double [] yy = new double[numLines];
 		for (int l = 0; l < numLines; l++)
 		{
-			yy[l] = branin.eval(x[l]);
+			yy[l] = branin.value(x[l]);
 			
 			if (!NumericalUtils.isClose(yy[l], y[l], 1e-4))
 			{

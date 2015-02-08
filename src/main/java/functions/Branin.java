@@ -2,7 +2,8 @@ package functions;
 
 import org.ejml.simple.SimpleMatrix;
 
-public class Branin implements Function {
+public class Branin implements Function 
+{
 	
 	public int getDim() { return 2; }
 
@@ -10,7 +11,7 @@ public class Branin implements Function {
 	 * Implemented as per http://www.sfu.ca/~ssurjano/branin.html
 	 */
 	@Override
-  public double eval(double[] x) {
+  public double value(double[] x) {
 		double x1 = 15*x[0] - 5;
 		double x2 = 15*x[1];
 		
@@ -28,12 +29,12 @@ public class Branin implements Function {
 	 * For now, just call the the vector version of eval()
 	 */
 	@Override
-  public double[] eval(SimpleMatrix xx) {
+  public double[] value(SimpleMatrix xx) {
 		int n = xx.numRows();
 		double [] retval = new double[n];
 		for (int i = 0; i < n; i++)
 		{
-			retval[i] = eval(xx.extractVector(true, i).getMatrix().getData());
+			retval[i] = value(xx.extractVector(true, i).getMatrix().getData());
 		}
 		
 	  return retval;

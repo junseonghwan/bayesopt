@@ -1,8 +1,10 @@
 package functions;
 
+import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.ejml.simple.SimpleMatrix;
 
-public interface Function {
+public interface Function extends MultivariateFunction
+{
 	
 	public int getDim();
 
@@ -12,13 +14,13 @@ public interface Function {
 	 * @param x
 	 * @return
 	 */
-	public double eval(double [] x);
+	public double value(double [] x);
 	
 	/**
 	 * Matrix version of the function evaluation
 	 * @param xx - n x d array where each row represents an input to the function
 	 * @return
 	 */
-	public double [] eval(SimpleMatrix xx);
+	public double [] value(SimpleMatrix xx);
 	
 }
