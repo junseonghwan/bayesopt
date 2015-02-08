@@ -1,70 +1,102 @@
 package sobol;
-import java.util.Arrays;
+import java.util.Random;
+
+import org.ejml.simple.SimpleMatrix;
+
+import functions.Function;
 
 public class Sobol 
 {
-	public double lower( Func func, double[][] xx, double[][] zz, int[] u, double[] args ) throws Exception
+	public static void drawUniform(Random random, double [] z)
 	{
-		if( xx.length != zz.length )
+		int n = z.length;
+		for (int j = 0; j < n; j++)
 		{
-			throw new RuntimeException();
+			z[j] = random.nextDouble();
 		}
+	}
+	
+	public static double lower(Random random, Function func, int n, int [] u)
+	{
+		int d = func.getDim();
 		
-		int l = xx.length;
-			
-		for( int i : u )
+		double [][] xx = new double[d][n];
+		double [][] zz = new double[d][n];
+		
+		for (int i = 0; i < d; i++)
 		{
-			for( int j = 0; j < l; j++ )
+			for (int j = 0; j < n; j++)
 			{
-				zz[j][i] = xx[j][i];
+				xx[i][j] = random.nextDouble();
+				zz[i][j] = random.nextDouble();
 			}
 		}
 		
-		double[] fxx = func.fun( xx, args );
-		double[] fzz = func.fun( zz, args );
+		for (int i : u)
+		{
+			System.arraycopy(xx[i], 0, zz[i], 0, xx[i].length);
+		}
 		
+		SimpleMatrix xxMat = new SimpleMatrix(xx);
+		SimpleMatrix zzMat = new SimpleMatrix(zz);
+		xxMat = xxMat.transpose();
+		zzMat = zzMat.transpose();
+
+		double [] fxx = func.eval(xxMat);
+		double [] fzz = func.eval(zzMat);
+
 		double mu_hat = 0;
 		double cross_moment = 0;
-		for( int i = 0; i < l; i++ )
+		for (int i = 0; i < n; i++)
 		{
-			mu_hat += ( fxx[i] + fzz[i] ) / ( 2 * l );
-			cross_moment += ( fxx[i] * fzz[i] ) / l;
+			mu_hat += (fxx[i] + fzz[i]);
+			cross_moment += (fxx[i] * fzz[i]);
 		}
+		
+		mu_hat = mu_hat/(2*n);
+		cross_moment /= n;
 		
 		return cross_moment - mu_hat * mu_hat;
 	}
 	
-	public double upper( Func func, double[][] xx, double[][] zz, int[] u, double[] args ) throws Exception
+	public static double upper(Random random, Function func, int n, int [] u)
 	{
-		if( xx.length != zz.length )
-		{
-			throw new RuntimeException();
-		}
+		int d = func.getDim();
 		
-		int l = xx.length;
-		int d = xx[0].length;
+		double [][] xx = new double[d][n];
+		double [][] zz = new double[d][n];
 		
-		for( int i = 0; i < d; i++ )
+		for (int i = 0; i < d; i++)
 		{
-			if(  )
+			for (int j = 0; j < n; j++)
 			{
-				for( int j = 0; j < l; j++ )
-				{
-					zz[j][i] = xx[j][i];
-				}
+				xx[i][j] = random.nextDouble();
+				zz[i][j] = xx[i][j];
 			}
 		}
 		
-		double[] fxx = func.fun( xx, args );
-		double[] fzz = func.fun( zz, args );
-		
-		double mu_hat = 0;
-		for( int i = 0; i < l; i++ )
+		// draw different uniform numbers for the rows r in u
+		for(int i : u)
 		{
-			mu_hat += ( fxx[i] - fzz[i] ) * ( fxx[i] - fzz[i] ) / ( 2 * l );
+			drawUniform(random, zz[i]);
 		}
 		
-		return mu_hat;
+		SimpleMatrix xxMat = new SimpleMatrix(xx);
+		SimpleMatrix zzMat = new SimpleMatrix(zz);
+		xxMat = xxMat.transpose();
+		zzMat = zzMat.transpose();
+
+		double[] fxx = func.eval(xxMat);
+		double[] fzz = func.eval(zzMat);
+		
+		double usobol = 0;
+		for( int i = 0; i < n; i++ )
+		{
+			usobol += (fxx[i] - fzz[i]) * (fxx[i] - fzz[i]);
+		}
+
+		usobol/=  (2 * n);
+		return usobol;
 	}
-	
+
 }
