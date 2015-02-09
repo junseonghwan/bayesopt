@@ -3,6 +3,8 @@ package gp;
 import java.util.Random;
 
 import org.apache.commons.math3.optim.PointValuePair;
+import org.apache.commons.math3.optim.SimpleBounds;
+import org.apache.commons.math3.optim.univariate.SearchInterval;
 import org.junit.Assert;
 
 import design.LatinHypercubeSampling;
@@ -15,21 +17,12 @@ public class GPFit implements Runnable
 {
 	
 	public void run() {
-		/*
-		Kernel kernel = new SquaredExponential( new double[] {1.0, 0.5} );
-		GaussianProcess gp = new GaussianProcess(kernel, 2, 0, 1.0);
-		Random random = new Random(1230);
-		gp.generate(random, 50, 2);
-		PointValuePair solution = gp.fitParameters(random, gp.getX(), gp.getY());
-		double [] x = solution.getPoint();
-		System.out.println(x[0] + ", " + x[1]);
-		*/
-		
 		double [] theta = new double[]{2.7, Math.PI, 0.1};
 		Kernel kernel = new SquaredExponential(theta);
 		GaussianProcess gp = new GaussianProcess(kernel);
 		
 		Random random = new Random(1230);
+		// adding more data doesn't necessarily equate to more accurate parameter estimates, is this OK?
 		int n = 50;
 		int d = theta.length;
 		double [][] X = LatinHypercubeSampling.sample(random, n, d);
@@ -50,10 +43,11 @@ public class GPFit implements Runnable
 			System.out.println(gp.getY()[i]);
 		}
 
-		System.out.println("logLik at true theta=" + gp.logLik(theta));
-		System.out.println(gp.getMuHat() + ", " + gp.getVarianceHat());
+		double logLikTrue = gp.logLik(theta);
 
-		PointValuePair solution = gp.fitParameters(random, X, gp.getY());
+		SearchInterval bounds = new SearchInterval(1e-3, 5.0);
+		PointValuePair solution = gp.fitParameters(random, X, gp.getY(), bounds);
+		System.out.println("logLik at true theta=" + logLikTrue);
 		System.out.println("logLik at estimated theta=" + solution.getValue());
 		double [] parameterEstimates = solution.getPoint();
 		for (int i = 0; i < theta.length; i++)

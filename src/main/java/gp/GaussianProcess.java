@@ -6,6 +6,7 @@ import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.MaxEval;
 import org.apache.commons.math3.optim.PointValuePair;
+import org.apache.commons.math3.optim.SimpleBounds;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.MultiDirectionalSimplex;
@@ -51,7 +52,7 @@ public class GaussianProcess
 	 * @param X - input matrix Nxd, where N is the number of inputs and d is the dimension
 	 * @param y - output or response vector Nx1 
 	 */
-	public PointValuePair fitParameters(Random random, double [][] X, double [] y) { // why don't we just access X and y directly?
+	public PointValuePair fitParameters(Random random, double [][] X, double [] y, SearchInterval bounds) { // why don't we just access X and y directly?
 		
 		this.X = X;
 		this.y = y;
@@ -67,9 +68,9 @@ public class GaussianProcess
 		SimplexOptimizer simplexOptimizer = new SimplexOptimizer(1e-3, 1e-3);
 		
 		
-		PointValuePair solution = simplexOptimizer.optimize(new ObjectiveFunction(logLik), new MaxEval(1000), GoalType.MAXIMIZE, new InitialGuess(initialGuess(random)), new NelderMeadSimplex(kernel.getDim()));
+		PointValuePair solution = simplexOptimizer.optimize(new ObjectiveFunction(logLik), new MaxEval(1000), GoalType.MAXIMIZE, bounds, new InitialGuess(initialGuess(random)), new NelderMeadSimplex(kernel.getDim()));
 		
-		System.out.println("logLikelihood:" + solution.getValue());
+		//System.out.println("logLikelihood:" + solution.getValue());
 		return solution;
 	}
 
@@ -98,6 +99,7 @@ public class GaussianProcess
 			onesArray[i] = 1;
 		}
 		
+		// we might need to add the nugget term to avoid the non-invertibility problem!
 		SimpleMatrix Rinv = covMatrix.invert();
 		
 		SimpleMatrix onesMat = new SimpleMatrix( n, 1, false, onesArray );
