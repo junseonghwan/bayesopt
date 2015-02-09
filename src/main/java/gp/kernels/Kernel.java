@@ -4,8 +4,8 @@ import org.ejml.simple.SimpleMatrix;
 
 public interface Kernel
 {
-
-	public double value(double [] x, double [] y);
+	public int getDim();
+	public double value(SimpleMatrix x, SimpleMatrix y);
 	public SimpleMatrix getCovarianceMatrix(SimpleMatrix X);
 	
 	public void updateParameters(double [] params);

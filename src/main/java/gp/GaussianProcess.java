@@ -9,6 +9,7 @@ import org.apache.commons.math3.optim.PointValuePair;
 import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
 import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.MultiDirectionalSimplex;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.NelderMeadSimplex;
 import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.SimplexOptimizer;
 import org.apache.commons.math3.optim.univariate.SearchInterval;
 import org.ejml.data.DenseMatrix64F;
@@ -16,9 +17,7 @@ import org.ejml.factory.CholeskyDecomposition;
 import org.ejml.factory.DecompositionFactory;
 import org.ejml.simple.SimpleMatrix;
 
-import functions.Branin;
 import gp.kernels.Kernel;
-import gp.kernels.SquaredExponential;
 
 public class GaussianProcess 
 {
@@ -26,20 +25,19 @@ public class GaussianProcess
 	private SimpleMatrix covMatrix;
 	private double [][] X;
 	private double [] y;
-	private double mu;
-	private double sigmaSquared;
+	private double muHat;
+	private double varHat;
 	
-	private int d;
-
-	public GaussianProcess(Kernel kernel, int d, double mu, double sigmaSquared) {
+	public GaussianProcess(Kernel kernel) {
 		this.kernel = kernel;
-		this.d = d;
-		this.mu = mu;
-		this.sigmaSquared = sigmaSquared;
 	}
+	
+	public double getMuHat() { return muHat; }
+	public double getVarianceHat() { return varHat; }
 	
 	private double [] initialGuess(Random random)
 	{
+		int d = kernel.getDim();
 		double [] guess = new double[d];
 		for (int i = 0; i < d; i++)
 		{
@@ -66,10 +64,10 @@ public class GaussianProcess
 			}
 		};
 		
-		SimplexOptimizer simplexOptimizer = new SimplexOptimizer(1e-6, 1e-6);
+		SimplexOptimizer simplexOptimizer = new SimplexOptimizer(1e-3, 1e-3);
 		
-		PointValuePair solution = simplexOptimizer.optimize(new ObjectiveFunction(logLik), new MaxEval(10000), GoalType.MINIMIZE, 
-				new SearchInterval(0.0, 10.0), new InitialGuess(initialGuess(random)), new MultiDirectionalSimplex(d));
+		
+		PointValuePair solution = simplexOptimizer.optimize(new ObjectiveFunction(logLik), new MaxEval(1000), GoalType.MAXIMIZE, new InitialGuess(initialGuess(random)), new NelderMeadSimplex(kernel.getDim()));
 		
 		System.out.println("logLikelihood:" + solution.getValue());
 		return solution;
@@ -81,64 +79,74 @@ public class GaussianProcess
 	 */
 	public double logLik( double[] thetas ) // thetas should be inputs for logLik, and maybe we should make it as inputs for kernel.getCovarianceMatrix
 	{
+		for (int i = 0; i < thetas.length; i++)
+		{
+			if (thetas[i] < 0)
+				return Double.NEGATIVE_INFINITY;
+		}
 		kernel.updateParameters(thetas);
 
 		int n = X.length;
 		SimpleMatrix xMat = new SimpleMatrix( X );
 		SimpleMatrix yMat = new SimpleMatrix( n, 1, false, y );
 		covMatrix = kernel.getCovarianceMatrix( xMat );
+		//System.out.println("in generate(): " + covMatrix.toString());
 		
 		double[] onesArray = new double[n];
 		for( int i = 0; i < n; i++ )
 		{
 			onesArray[i] = 1;
 		}
+		
+		SimpleMatrix Rinv = covMatrix.invert();
+		
 		SimpleMatrix onesMat = new SimpleMatrix( n, 1, false, onesArray );
 		
-		double muHat = ( onesMat.transpose().mult( covMatrix.invert() ).mult( yMat ).get( 0 ) / onesMat.transpose().mult( covMatrix.invert() ).mult( onesMat ).get( 0 ) );
+		//this.muHat = ( onesMat.transpose().mult( Rinv ).dot( yMat ) / onesMat.transpose().mult( Rinv ).dot( onesMat ) );
+		this.muHat = ( Rinv.mult(onesMat).dot( yMat ) / Rinv.mult(onesMat).dot( onesMat ) );
 		
 		double[] muHatArray = new double[n];
 		for( int i = 0; i < n; i++ )
 		{
-			muHatArray[i] = muHat;
+			muHatArray[i] = this.muHat;
 		}
 		
 		SimpleMatrix muHatMat = new SimpleMatrix( n, 1, false, muHatArray );
 		
-		double sigmaSquared = yMat.minus( muHatMat ).transpose().mult( covMatrix.invert() ).mult( yMat.minus( muHatMat ) ).get( 0 ) / ( n + 0.0 );
+		this.varHat = yMat.minus( muHatMat ).transpose().mult( Rinv ).dot( yMat.minus( muHatMat ) ) / n;
 		
-		double loglik = -(n + 0.0) * Math.log( 2 * Math.PI * sigmaSquared ) / 2 - Math.log( covMatrix.determinant() ) / 2 - (n + 0.0) / 2;
-		
+		double loglik = -n * Math.log( 2 * Math.PI * this.varHat ) / 2.0 - Math.log( covMatrix.determinant() ) / 2.0 - n/2.0;
+		for (int i = 0; i < kernel.getDim(); i++)
+		{
+			System.out.print(thetas[i] + " ");
+		}
+		System.out.println("loglik=" + loglik);
 		return loglik;
 	}
 
-	public void generate(Random random, int n, int d)
+	/**
+	 * Given the design points, X, generate the values
+	 * @param random
+	 * @param X - design points
+	 */
+	public void generate(Random random, double [][] X, double mu, double var)
 	{
-		// 1. generate X
-		// 2. using X, compute R
-		// 3. compute y(X)
-		
-		this.X = new double[n][d];
+		int n = X.length;
+		this.X = X;
 		this.y = new double[n];
-		
-		for (int i = 0; i < n; i++)
-		{
-			for (int j = 0; j < d; j++)
-			{
-				this.X[i][j] = random.nextDouble();
-			}
-		}
-		
+
 		SimpleMatrix xMat = new SimpleMatrix(X);
 		SimpleMatrix R = kernel.getCovarianceMatrix(xMat);
-		
+	
 		CholeskyDecomposition<DenseMatrix64F> chol = DecompositionFactory.chol(R.numRows(), false);
-	    
+
 		if( !chol.decompose(R.getMatrix()))
-		   throw new RuntimeException("Cholesky failed!");
-		        
-		SimpleMatrix L = SimpleMatrix.wrap(chol.getT(null));
-		
+		{
+		  throw new RuntimeException("Cholesky decomposition failed! Most likely an issue with the design points");
+		}
+
+		SimpleMatrix L = SimpleMatrix.wrap(chol.getT(null)).transpose();
+
 		SimpleMatrix V = new SimpleMatrix(n, 1);
 		for( int i = 0; i < V.numRows(); i++ )
 		{
@@ -148,10 +156,10 @@ public class GaussianProcess
 		SimpleMatrix muVector = new SimpleMatrix(n, 1);
 		for( int i = 0; i < muVector.numRows(); i++ )
 		{
-			muVector.set(i, this.mu);
+			muVector.set(i, mu);
 		}
 		
-		this.y = L.mult(V).scale(this.sigmaSquared).plus(muVector).getMatrix().getData();
+		this.y = L.mult(V).scale(var).plus(muVector).getMatrix().getData();
 	}
 	
 	public double [][] getX()
