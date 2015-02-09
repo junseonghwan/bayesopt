@@ -12,6 +12,8 @@ public class Branin implements Function
 	 */
 	@Override
   public double value(double[] x) {
+		if (x.length != 2)
+			throw new RuntimeException("Branin function requries only 2 inputs!");
 		double x1 = 15*x[0] - 5;
 		double x2 = 15*x[1];
 		

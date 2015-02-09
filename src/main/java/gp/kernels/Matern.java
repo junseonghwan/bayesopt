@@ -13,7 +13,25 @@ public class Matern implements Kernel {
 	@Override
   public SimpleMatrix getCovarianceMatrix(SimpleMatrix X) {
 	  // TODO Auto-generated method stub
-	  return null;
+		int p = X.numCols();
+		SimpleMatrix r = new SimpleMatrix( p, p );
+		for( int i = 0; i < p; i++ )
+		{
+			for( int j = 0; j <= i; j++ )
+			{
+				r.set( i, j, value( X.extractVector(false, i).getMatrix().getData(), 
+									X.extractVector(false, j).getMatrix().getData() ) );
+				r.set( j, i, r.get(i, j) );
+			}
+		}
+		
+		return r;
   }
+
+	@Override
+	public void updateParameters(double[] params) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
