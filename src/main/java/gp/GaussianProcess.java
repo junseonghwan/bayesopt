@@ -30,7 +30,26 @@ public class GaussianProcess
 	private double varHat;
 	private double loglik;
 	
-	public GaussianProcess(Kernel kernel, double [][] X, double [] y) {
+	public GaussianProcess(Kernel kernel, double [][] X, double [] y, double mu, double var) {
+		this.kernel = kernel;
+		this.X = X;
+		this.y = y;
+		this.muHat = mu;
+		this.varHat = var;
+		
+		// compute the covMatrix
+		SimpleMatrix xMat = new SimpleMatrix(X);
+		this.covMatrix = kernel.getCovarianceMatrix(xMat);
+		this.covInverse = this.covMatrix.invert();
+	}
+	
+	/**
+	 * internal use for fitting of GP -- does not allow mu and var to be specified.
+	 * @param kernel
+	 * @param X
+	 * @param y
+	 */
+	private GaussianProcess(Kernel kernel, double [][] X, double [] y) {
 		this.kernel = kernel;
 		this.X = X;
 		this.y = y;
@@ -192,7 +211,7 @@ public class GaussianProcess
 		
 		double [] muVar = new double[2];
 		muVar[0] = this.muHat + corrVector.transpose().mult(covInverse).dot(yVector.minus(muVector));
-		muVar[1] = this.varHat*(1 - corrVector.transpose().mult(covInverse).dot(corrVector));
+		muVar[1] = Math.max(this.varHat*(1 - corrVector.transpose().mult(covInverse).dot(corrVector)), 0.0);
 		return muVar;
 	}
 	

@@ -45,14 +45,16 @@ public class GaussianProcessPrediction {
 		 * TODO: write a test to validate generate()
 		 */
 		
-		GaussianProcess gp = new GaussianProcess(kernel, X, y);
+		GaussianProcess gp = new GaussianProcess(kernel, X, y, mu, var);
 
 		// now predict
 		double [] input = new double[1];
+		double ss = 0.0;
 		for (int index = 0; index < n; index++)
 		{
   		input[0] = X[index][0]; // should be same as gp.y[index] if the true mu and true var are used
   		double [] muVar = gp.predict(input);
+  		ss += Math.pow(muVar[0] - y[index], 2.0);
   		System.out.println(y[index] + " vs " + muVar[0] + ", " + muVar[1]);
   		if (!NumericalUtils.isClose(muVar[0], y[index], 1e-1)) // just check that they are close enough
   		{
@@ -60,6 +62,9 @@ public class GaussianProcessPrediction {
   		}
 		}
 		
+		System.out.println(Math.sqrt(ss/n));
+		
+		// conclusion: the error for prediction is too large, is this because of matrix inversion, numerical instability?
 	}
 
 }
