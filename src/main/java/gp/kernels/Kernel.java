@@ -8,6 +8,7 @@ public interface Kernel
 	public double value(SimpleMatrix x, SimpleMatrix y);
 	public SimpleMatrix getCovarianceMatrix(SimpleMatrix X);
 	
+	public double [] getParameters();
 	public void updateParameters(double [] params);
 
 }

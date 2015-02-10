@@ -55,6 +55,11 @@ public class SquaredExponential implements Kernel
 
 		return r;
   }
+	
+	@Override
+	public double [] getParameters() {
+		return this.theta;
+	}
 
 	@Override
 	public void updateParameters(double [] theta)

@@ -29,4 +29,10 @@ public class Matern implements Kernel {
 	  return 0;
   }
 
+	@Override
+  public double[] getParameters() {
+	  // TODO Auto-generated method stub
+	  return null;
+  }
+
 }
