@@ -53,9 +53,9 @@ public class LatinHypercubeSampling
 				int a = Z[i][j];
 				double u = random.nextDouble();
 				X[i][j] = (u + a)/n;
-				//System.out.print(X[i][j] + " ");
+				System.out.print(X[i][j] + " ");
 			}
-			//System.out.println();
+			System.out.println();
 		}
 
 		return X;

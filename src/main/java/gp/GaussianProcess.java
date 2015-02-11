@@ -211,7 +211,8 @@ public class GaussianProcess
 		
 		double [] muVar = new double[2];
 		muVar[0] = this.muHat + corrVector.transpose().mult(covInverse).dot(yVector.minus(muVector));
-		muVar[1] = Math.max(this.varHat*(1 - corrVector.transpose().mult(covInverse).dot(corrVector)), 0.0);
+		SimpleMatrix temp = covInverse.mult(corrVector);
+		muVar[1] = Math.max(this.varHat*(1 - corrVector.transpose().dot(temp) + Math.pow(1 - temp.elementSum(), 2.0)/covInverse.elementSum()), 0.0);
 		return muVar;
 	}
 	
@@ -227,11 +228,40 @@ public class GaussianProcess
 		return r;
 	}
 	
+	public void updateData(double [][] X, double [] y) {
+		this.X = X;
+		this.y = y;
+		
+		int n = X.length;
+
+		SimpleMatrix xMat = new SimpleMatrix(X);
+		SimpleMatrix yVector = new SimpleMatrix(n, 1, false, y);
+
+		covMatrix = kernel.getCovarianceMatrix(xMat);
+
+		/*
+		 * The below code contains matrix operations, which are bottleneck of GP fitting -- i.e., involves matrix inversion
+		 */
+
+		// we might need to add the nugget term to avoid the singularity problem!
+		covInverse = covMatrix.invert(); 
+		this.muHat = covInverse.mult(yVector).elementSum()/covInverse.elementSum();
+
+		SimpleMatrix muHatVector = EJMLUtil.rep(n, this.muHat);
+		SimpleMatrix diff = yVector.minus(muHatVector);
+
+		this.varHat = diff.transpose().mult(covInverse).dot(diff) / n;
+
+		double loglik = -n * Math.log( 2 * Math.PI * this.varHat ) / 2.0 - Math.log( covMatrix.determinant() ) / 2.0 - n/2.0;
+		System.out.println("loglik=" + loglik);
+	}
+	
 	public double [][] getX() { return X; }
 	public double [] getY() { return y; }
 	public double getMuHat() { return muHat; }
 	public double getVarianceHat() { return varHat; }	
 	public double getLogLik() { return loglik; }
 	public double [] getParameters() { return kernel.getParameters(); }
+	public int getDim() { return kernel.getDim(); }
 
 }

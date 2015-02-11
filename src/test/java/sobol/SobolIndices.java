@@ -6,13 +6,13 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import org.junit.Assert;
 import org.junit.Test;
 
+import briefj.run.Mains;
 import functions.Branin;
 import functions.Function;
 
-public class SobolIndices
+public class SobolIndices implements Runnable
 {
-	@Test
-	public void test() {
+	public void run() {
 		Random random = new Random(232);
 		Function branin = new Branin();
 		int n = 100000;
@@ -54,8 +54,10 @@ public class SobolIndices
 		System.out.println("variable 1 upper Sobol=" + upperSumm[0].getMean() + ", " + Math.sqrt(upperSumm[0].getVariance()));
 		System.out.println("variable 2 lower Sobol=" + lowerSumm[1].getMean() + ", " + Math.sqrt(lowerSumm[1].getVariance()));
 		System.out.println("variable 2 upper Sobol=" + upperSumm[1].getMean() + ", " + Math.sqrt(upperSumm[1].getVariance()));
-
-
+	}
+	
+	public static void main(String [] args) {
+		Mains.instrumentedRun(args, new SobolIndices());
 	}
 
 }
