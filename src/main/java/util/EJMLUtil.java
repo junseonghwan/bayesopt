@@ -1,5 +1,8 @@
 package util;
 
+import org.ejml.data.DenseMatrix64F;
+import org.ejml.factory.CholeskyDecomposition;
+import org.ejml.factory.DecompositionFactory;
 import org.ejml.simple.SimpleMatrix;
 
 public class EJMLUtil {
@@ -12,4 +15,25 @@ public class EJMLUtil {
 		}
 		return vector;
 	}
+	
+	/**
+	 * Compute the inverse of a symmetric, real matrix via Cholesky decomposition
+	 * @param mat
+	 * @return
+	 */
+	public static SimpleMatrix invertSymmetricMatrix(SimpleMatrix mat) {
+		CholeskyDecomposition<DenseMatrix64F> chol = DecompositionFactory.chol(mat.numRows(), false);
+
+		if( !chol.decompose(mat.getMatrix()))
+		{
+		  throw new RuntimeException("Cholesky decomposition failed! Most likely an issue with the design points.");
+		}
+
+		SimpleMatrix Ltransposed = SimpleMatrix.wrap(chol.getT(null));
+		SimpleMatrix L = Ltransposed.transpose();
+		
+		return Ltransposed.invert().mult(L.invert());
+	}
+	
+
 }

@@ -40,7 +40,7 @@ public class GaussianProcess
 		// compute the covMatrix
 		SimpleMatrix xMat = new SimpleMatrix(X);
 		this.covMatrix = kernel.getCovarianceMatrix(xMat);
-		this.covInverse = this.covMatrix.invert();
+		this.covInverse = EJMLUtil.invertSymmetricMatrix(this.covMatrix);
 	}
 	
 	/**
@@ -50,14 +50,7 @@ public class GaussianProcess
 	 * @param y
 	 */
 	private GaussianProcess(Kernel kernel, double [][] X, double [] y) {
-		this.kernel = kernel;
-		this.X = X;
-		this.y = y;
-		
-		// compute the covMatrix
-		SimpleMatrix xMat = new SimpleMatrix(X);
-		this.covMatrix = kernel.getCovarianceMatrix(xMat);
-		this.covInverse = this.covMatrix.invert();
+		this(kernel, X, y, 0.0, 1.0);
 	}
 	
 	/**
@@ -80,18 +73,32 @@ public class GaussianProcess
 		};
 		
 		if (GPOptions.verbose) {
-  		System.out.println("Begin GP fitting");
-  		System.out.println("-----------------");
+	  		System.out.println("Begin GP fitting");
+	  		System.out.println("-----------------");
 		}
-		SimplexOptimizer simplexOptimizer = new SimplexOptimizer(1e-5, 1e-6);
-		PointValuePair solution = simplexOptimizer.optimize(new ObjectiveFunction(logLik), new MaxEval(1000), GoalType.MAXIMIZE, bounds, new InitialGuess(kernel.getParameters()), new NelderMeadSimplex(kernel.getDim()));
-		gp.loglik = solution.getValue().doubleValue();
-		gp.kernel.updateParameters(solution.getPoint());
+
+		double maxLogLik = Double.NEGATIVE_INFINITY;
+		PointValuePair optimal = null;
+		double [] initialGuess;
+		for (int i = 0; i < GPOptions.numRestarts; i++) {
+			initialGuess = GPOptions.randomGuess(gp.getDim());
+			SimplexOptimizer simplexOptimizer = new SimplexOptimizer(1e-5, 1e-6);
+			PointValuePair solution = simplexOptimizer.optimize(new ObjectiveFunction(logLik), new MaxEval(1000), GoalType.MAXIMIZE, bounds,
+					new InitialGuess(initialGuess), new NelderMeadSimplex(kernel.getDim()));
+					//new InitialGuess(kernel.getParameters()), new NelderMeadSimplex(kernel.getDim()));
+			if (solution.getValue() > maxLogLik) {
+				optimal = solution;
+				maxLogLik = optimal.getValue();
+			}
+		}
+		
+		gp.loglik = optimal.getValue().doubleValue();
+		gp.kernel.updateParameters(optimal.getPoint());
 		
 		if (GPOptions.verbose) {
-	  	System.out.println("-----------------");
-  		System.out.println("end GP fitting");
-  		System.out.println("loglik=" + gp.loglik);
+		  	System.out.println("-----------------");
+	  		System.out.println("end GP fitting");
+	  		System.out.println("loglik=" + gp.loglik);
 		}
 		return gp;
 	}
@@ -105,7 +112,7 @@ public class GaussianProcess
 		double [] params = this.kernel.getParameters();
 		for (int i = 0; i < params.length; i++)
 		{
-			if (params[i] <= 0)
+			if (params[i] <= GPOptions.searchLowerBound || params[i] >= GPOptions.searchUpperBound)
 				return Double.NEGATIVE_INFINITY;
 		}
 
@@ -119,8 +126,8 @@ public class GaussianProcess
 		 */
 
 		// we might need to add the nugget term to avoid the singularity problem!
-		covInverse = covMatrix.invert(); 
-		this.muHat = covInverse.mult(yVector).elementSum()/covInverse.elementSum();
+		this.covInverse = EJMLUtil.invertSymmetricMatrix(this.covMatrix);
+ 		this.muHat = covInverse.mult(yVector).elementSum()/covInverse.elementSum();
 
 		SimpleMatrix muHatVector = EJMLUtil.rep(n, this.muHat);
 		SimpleMatrix diff = yVector.minus(muHatVector);
@@ -133,11 +140,11 @@ public class GaussianProcess
 		}
 
 		if (GPOptions.verbose) {
-  		for (int i = 0; i < kernel.getDim(); i++)
-  		{
-  			System.out.print(params[i] + " ");
-  		}
-  		System.out.println("; loglik=" + loglik);
+	  		for (int i = 0; i < kernel.getDim(); i++)
+	  		{
+	  			System.out.print(params[i] + " ");
+	  		}
+	  		System.out.println("; loglik=" + loglik);
 		}
 		return loglik;
 	}
@@ -244,7 +251,7 @@ public class GaussianProcess
 		 */
 
 		// we might need to add the nugget term to avoid the singularity problem!
-		covInverse = covMatrix.invert(); 
+		this.covInverse = EJMLUtil.invertSymmetricMatrix(this.covMatrix);
 		this.muHat = covInverse.mult(yVector).elementSum()/covInverse.elementSum();
 
 		SimpleMatrix muHatVector = EJMLUtil.rep(n, this.muHat);
@@ -252,8 +259,8 @@ public class GaussianProcess
 
 		this.varHat = diff.transpose().mult(covInverse).dot(diff) / n;
 
-		double loglik = -n * Math.log( 2 * Math.PI * this.varHat ) / 2.0 - Math.log( covMatrix.determinant() ) / 2.0 - n/2.0;
-		System.out.println("loglik=" + loglik);
+		this.loglik = -n * Math.log( 2 * Math.PI * this.varHat ) / 2.0 - Math.log( covMatrix.determinant() ) / 2.0 - n/2.0;
+		//System.out.println("loglik=" + loglik);
 	}
 	
 	public double [][] getX() { return X; }

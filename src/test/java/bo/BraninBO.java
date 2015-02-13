@@ -11,7 +11,7 @@ public class BraninBO implements Runnable
 
 	public void run() {
 		BayesianOptimization bo = new BayesianOptimization();
-		Random random = new Random(2155);
+		Random random = new Random(55);
 		Function branin = new Branin();
 		bo.minimize(random, branin, 10, 100);
 	}
